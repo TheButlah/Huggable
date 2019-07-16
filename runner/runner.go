@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/thebutlah/huggable/handlers"
+	"github.com/thebutlah/huggable.us/handlers"
 )
 
 var pathMap = map[string]http.Handler{

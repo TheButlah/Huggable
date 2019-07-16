@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/thebutlah/huggable/runner"
+	"github.com/thebutlah/huggable.us/runner"
 )
 
 func main() {

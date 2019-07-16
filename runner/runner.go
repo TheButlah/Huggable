@@ -13,7 +13,7 @@ import (
 )
 
 var pathMap = map[string]http.Handler{
-	"/": handlers.NewStaticContent("static"),
+	"/": handlers.NewStaticContent("web/static"),
 }
 
 //// Start and option config ////

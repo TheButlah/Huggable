@@ -1,25 +1,27 @@
 package handlers
 
 import (
-	"fmt"
 	"log"
 	"net/http"
-	"time"
+	"path/filepath"
 )
 
 //StaticContent is a `http.Handler` that serves static files to the client
 type StaticContent struct {
+	fs http.Handler
 }
 
 //NewStaticContent constructs a `StaticContent` handler
 func NewStaticContent(root string) StaticContent {
-	return StaticContent{}
+	root = filepath.FromSlash(root)
+	return StaticContent{
+		fs: http.FileServer(http.Dir(root)),
+	}
 }
 
 func (sc StaticContent) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	t := time.Now()
 	log.Println("[StaticContent] serving", r.URL.String())
-	fmt.Fprintf(w, "Hello world! Its currently %s", t)
+	sc.fs.ServeHTTP(w, r)
 }
 
 //Compile-time check that `StaticContent` implements `http.Handler`

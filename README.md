@@ -1,2 +1,2 @@
-# Huggable
-Code for the Huggable web app
+# Huggable.us
+Code for the Huggable.us web app

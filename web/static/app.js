@@ -9,10 +9,24 @@ if ('serviceWorker' in navigator) {
     });
 }
 
-window.addEventListener("beforeinstallprompt", function(event) {
+let deferredPrompt
+window.addEventListener('beforeinstallprompt', function(event) {
     console.info("install prompt")
-    event.preventDefault()
-    deferredPrompt = event
-    //event.prompt()
 
+    // Prevent Chrome 67 and earlier from automatically showing the prompt
+    event.preventDefault()
+
+    deferredPrompt = event
+    document.addEventListener('click', function(event) {
+        deferredPrompt.prompt()
+    })
+
+    deferredPrompt.userChoice.then(choice => {
+        if (choice.outcome === 'accepted') {
+            console.info('User accepted the installation')
+        } else {
+            console.info('User declined the installation')
+        }
+        deferredPrompt = null
+    })
 })

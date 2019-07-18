@@ -1,7 +1,6 @@
 #### Project specific ignores here ####
-*.crt
-*.key
-keys/
+/certs/
+*.pem
 
 #### Project agnostic ignores below here ####
 # JetBrains IDEs

@@ -11,6 +11,9 @@ type StaticContent struct {
 	fs http.Handler
 }
 
+//Compile-time check that `StaticContent` implements `http.Handler`
+var _ http.Handler = (*StaticContent)(nil)
+
 //NewStaticContent constructs a `StaticContent` handler
 func NewStaticContent(root string) StaticContent {
 	root = filepath.FromSlash(root)
@@ -23,6 +26,3 @@ func (sc StaticContent) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Println("[StaticContent] serving", r.URL.String())
 	sc.fs.ServeHTTP(w, r)
 }
-
-//Compile-time check that `StaticContent` implements `http.Handler`
-var _ http.Handler = (*StaticContent)(nil)

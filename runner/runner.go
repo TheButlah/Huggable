@@ -2,12 +2,12 @@ package runner
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net"
 	"net/http"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/thebutlah/huggable.us/handlers"
 )
@@ -33,7 +33,9 @@ func HTTPOptions(port string) option {
 	return func(c *config) error {
 		p, err := net.LookupPort("tcp", port)
 		if err != nil {
-			return errors.New("Invalid port set for `HTTPOptions`: " + port)
+			return fmt.Errorf(
+				"runner: port `%s` invalid for `HTTPOptions`", port,
+			)
 		}
 		c.httpPort = strconv.Itoa(p)
 		return err
@@ -46,7 +48,9 @@ func HTTPSOptions(port string) option {
 	return func(c *config) error {
 		p, err := net.LookupPort("tcp", port)
 		if err != nil {
-			return errors.New("Invalid port set for `HTTPSOptions`: " + port)
+			return fmt.Errorf(
+				"runner: port `%s` invalid for `HTTPSOptions`", port,
+			)
 		}
 		c.httpsPort = strconv.Itoa(p)
 		return err
@@ -62,8 +66,9 @@ func CertOptions(cert, key string) option {
 		for _, arg := range args {
 			if _, err := os.Stat(arg); err != nil {
 				// arg may or may not exist, but we error anyway
-				log.Panic(err)
-				return err // Never reach this, here for explicitness
+				return fmt.Errorf(
+					"runner: could not determine if file `%s` exists", arg,
+				)
 			}
 		}
 		c.certPath = cert
@@ -73,6 +78,7 @@ func CertOptions(cert, key string) option {
 }
 
 // Start starts the server using the given options to determine the port.
+// panics if options are configured improperly in a non-recoverable way.
 func Start(options ...option) error {
 	////// Configure the options for `Start()` //////
 	cfg := new(config)
@@ -87,14 +93,13 @@ func Start(options ...option) error {
 		)(cfg)
 
 		if len(options) > 2 {
-			return errors.New(
-				"`Start()` should be called with at most 2 options",
-			)
+			log.Panic(errors.New(
+				"runner: `Start()` should be called with at most 2 options",
+			))
 		}
 		// Mutate config using provided options
 		for _, opt := range options {
-			err := opt(cfg)
-			if err != nil {
+			if err := opt(cfg); err != nil {
 				return err
 			}
 		}
@@ -103,16 +108,7 @@ func Start(options ...option) error {
 
 	////// Start http listener that redirects to https //////
 	{
-		http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-			var targetURL, start = r.URL, r.URL.String()
-
-			targetURL.Scheme = "https"
-			targetURL.Host = strings.Split(r.Host, ":")[0]
-			target := targetURL.String()
-
-			log.Printf("Redirecting %s to %s", start, target)
-			http.Redirect(w, r, target, http.StatusTemporaryRedirect)
-		})
+		http.Handle("/", handlers.NewRedirectHTTP("https"))
 		log.Printf("Listening for HTTP requests on port \"%s\"", cfg.httpPort)
 		go http.ListenAndServe(":"+cfg.httpPort, nil)
 	}
@@ -125,10 +121,8 @@ func Start(options ...option) error {
 		}
 
 		log.Printf("Listening for HTTPS requests on port \"%s\"", cfg.httpsPort)
-		log.Fatal(http.ListenAndServeTLS(
+		return http.ListenAndServeTLS(
 			":"+cfg.httpsPort, cfg.certPath, cfg.keyPath, mux,
-		))
+		)
 	}
-
-	return nil
 }

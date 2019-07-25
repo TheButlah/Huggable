@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -18,8 +19,11 @@ var _ http.Handler = (*RedirectHTTP)(nil)
 // NewRedirectHTTP constructs a `RedirectHTTP` handler.
 // `targetScheme` should not have any colons or slashes (i.e. https vs https://)
 func NewRedirectHTTP(targetScheme string) RedirectHTTP {
-	if strings.ContainsAny(targetScheme, ":/") {
-		log.Panic("handlers: `targetScheme` must not contain `:/`")
+	invalidRunes := ":/"
+	if strings.ContainsAny(targetScheme, invalidRunes) {
+		log.Panic(fmt.Errorf(
+			"handlers: `targetScheme` must not contain `%s`", invalidRunes,
+		))
 	}
 	return RedirectHTTP{targetScheme: targetScheme}
 }

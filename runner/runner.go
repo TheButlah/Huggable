@@ -1,7 +1,6 @@
 package runner
 
 import (
-	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -27,40 +26,40 @@ type config struct {
 // option is the type alias for configuring options for `Start()`
 type option func(*config) error
 
-// HTTPOptions configures the HTTP listener for the server. If `port` is not a
-// valid number, it will be converted to one using `net.LookupPort("tcp", port)`
-func HTTPOptions(port string) option {
+// HTTPPort configures the HTTP listener for the server. Will attempt to map
+// `port` to a valid number using `net.LookupPort("tcp", port)`
+func HTTPPort(port string) option {
 	return func(c *config) error {
 		p, err := net.LookupPort("tcp", port)
 		if err != nil {
 			return fmt.Errorf(
-				"runner: port `%s` invalid for `HTTPOptions`", port,
+				"runner: port `%s` invalid for `HTTPPort`", port,
 			)
 		}
 		c.httpPort = strconv.Itoa(p)
-		return err
+		return nil
 	}
 }
 
-// HTTPSOptions configures the HTTPS listener for the server. If `port` is not a
-// valid number, it will be converted to one using `net.LookupPort("tcp", port)`
-func HTTPSOptions(port string) option {
+// HTTPSPort configures the HTTP listener for the server. Will attempt to map
+// `port` to a valid number using `net.LookupPort("tcp", port)`
+func HTTPSPort(port string) option {
 	return func(c *config) error {
 		p, err := net.LookupPort("tcp", port)
 		if err != nil {
 			return fmt.Errorf(
-				"runner: port `%s` invalid for `HTTPSOptions`", port,
+				"runner: port `%s` invalid for `HTTPSPort`", port,
 			)
 		}
 		c.httpsPort = strconv.Itoa(p)
-		return err
+		return nil
 	}
 }
 
-// CertOptions configures the location of the TLS/SSL Certificate for the HTTPS
+// CertPaths configures the location of the TLS/SSL Certificate for the HTTPS
 // Listener. Each argument should be a path to the corresponding certificate
 // or private key.
-func CertOptions(cert, key string) option {
+func CertPaths(cert, key string) option {
 	return func(c *config) error {
 		args := [2]string{cert, key}
 		for _, arg := range args {
@@ -78,25 +77,19 @@ func CertOptions(cert, key string) option {
 }
 
 // Start starts the server using the given options to determine the port.
-// panics if options are configured improperly in a non-recoverable way.
 func Start(options ...option) error {
 	////// Configure the options for `Start()` //////
 	cfg := new(config)
 	{
 		// Default values for the arguments
-		HTTPOptions("http")(cfg)
-		HTTPSOptions("https")(cfg)
-		CertOptions(
+		HTTPPort("http")(cfg)
+		HTTPSPort("https")(cfg)
+		CertPaths(
 			// Letsencrypt Cert install locations on unix
 			"/etc/letsencrypt/live/huggable.us/fullchain.pem",
 			"/etc/letsencrypt/live/huggable.us/privkey.pem",
 		)(cfg)
 
-		if len(options) > 2 {
-			log.Panic(errors.New(
-				"runner: `Start()` should be called with at most 2 options",
-			))
-		}
 		// Mutate config using provided options
 		for _, opt := range options {
 			if err := opt(cfg); err != nil {

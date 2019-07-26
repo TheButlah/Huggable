@@ -23,12 +23,12 @@ type config struct {
 	certPath, keyPath   string
 }
 
-// option is the type alias for configuring options for `Start()`
-type option func(*config) error
+// Option is the type alias for configuring options for `Start()`
+type Option func(*config) error
 
 // HTTPPort configures the HTTP listener for the server. Will attempt to map
 // `port` to a valid number using `net.LookupPort("tcp", port)`
-func HTTPPort(port string) option {
+func HTTPPort(port string) Option {
 	return func(c *config) error {
 		p, err := net.LookupPort("tcp", port)
 		if err != nil {
@@ -43,7 +43,7 @@ func HTTPPort(port string) option {
 
 // HTTPSPort configures the HTTP listener for the server. Will attempt to map
 // `port` to a valid number using `net.LookupPort("tcp", port)`
-func HTTPSPort(port string) option {
+func HTTPSPort(port string) Option {
 	return func(c *config) error {
 		p, err := net.LookupPort("tcp", port)
 		if err != nil {
@@ -59,7 +59,7 @@ func HTTPSPort(port string) option {
 // CertPaths configures the location of the TLS/SSL Certificate for the HTTPS
 // Listener. Each argument should be a path to the corresponding certificate
 // or private key.
-func CertPaths(cert, key string) option {
+func CertPaths(cert, key string) Option {
 	return func(c *config) error {
 		args := [2]string{cert, key}
 		for _, arg := range args {
@@ -77,7 +77,7 @@ func CertPaths(cert, key string) option {
 }
 
 // Start starts the server using the given options to determine the port.
-func Start(options ...option) error {
+func Start(options ...Option) error {
 	////// Configure the options for `Start()` //////
 	cfg := new(config)
 	{
@@ -101,9 +101,18 @@ func Start(options ...option) error {
 
 	////// Start http listener that redirects to https //////
 	{
-		http.Handle("/", handlers.NewRedirectHTTP("https"))
-		log.Printf("Listening for HTTP requests on port \"%s\"", cfg.httpPort)
-		go http.ListenAndServe(":"+cfg.httpPort, nil)
+		mux := http.NewServeMux()
+		mux.Handle("/", handlers.NewRedirectHTTP("https"))
+
+		ln, err := net.Listen("tcp", ":"+cfg.httpPort)
+		if err != nil {
+			// TODO: If Listen fails, try to bind to systemd provided socket
+			log.Panic(err)
+		} else {
+			defer ln.Close()
+			log.Printf("Listening for HTTP requests on \"%s\"", ln.Addr())
+			go func() { log.Println(http.Serve(ln, mux)) }()
+		}
 	}
 
 	////// Start main https listener //////
@@ -113,9 +122,15 @@ func Start(options ...option) error {
 			mux.Handle(p, h)
 		}
 
-		log.Printf("Listening for HTTPS requests on port \"%s\"", cfg.httpsPort)
-		return http.ListenAndServeTLS(
-			":"+cfg.httpsPort, cfg.certPath, cfg.keyPath, mux,
-		)
+		ln, err := net.Listen("tcp", ":"+cfg.httpsPort)
+		if err != nil {
+			// TODO: If Listen fails, try to bind to systemd provided socket
+			log.Panic(err)
+		} else {
+			defer ln.Close()
+			log.Printf("Listening for HTTPS requests on \"%s\"", ln.Addr())
+			return http.ServeTLS(ln, mux, cfg.certPath, cfg.keyPath)
+		}
 	}
+	return fmt.Errorf("runner: was never supposed to reach this")
 }

@@ -3,10 +3,8 @@
 *.pem
 
 #### Project agnostic ignores below here ####
-# JetBrains IDEs
+# IDEs
 .idea
-
-# VSCode IDE
 .vscode/
 
 # MacOS Files

@@ -36,5 +36,5 @@ func (rh RedirectHTTP) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	target := targetURL.String()
 
 	log.Printf("Redirecting %s to %s", start, target)
-	http.Redirect(w, r, target, http.StatusTemporaryRedirect)
+	http.Redirect(w, r, target, http.StatusPermanentRedirect)
 }

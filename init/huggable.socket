@@ -1,0 +1,8 @@
+[Unit]
+Description=Huggable.Us socket
+
+[Socket]
+ListenStream=80
+ListenStream=443
+# Go sets this by default for its sockets, so we do it too
+NoDelay=true

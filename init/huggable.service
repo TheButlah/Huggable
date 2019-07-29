@@ -1,0 +1,19 @@
+[Unit]
+Description=The Huggable.Us web app
+After=network.target
+After=syslog.target
+Requires=huggable.socket
+
+[Service]
+Type=simple
+Restart=no
+RestartSec=2s
+User=huggable
+Group=huggable
+ExecStart=/usr/local/go/bin/go run /opt/huggable.us/main.go
+WorkingDirectory=/opt/huggable.us/
+# Go sets this by default for its sockets, so we do it too
+NonBlocking=true
+
+[Install]
+WantedBy=multi-user.target

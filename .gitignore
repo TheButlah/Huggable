@@ -1,6 +1,8 @@
 #### Project specific ignores here ####
 /certs/
 *.pem
+/main
+/main.exe
 
 #### Project agnostic ignores below here ####
 # IDEs

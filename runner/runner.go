@@ -104,7 +104,7 @@ func Start(options ...Option) error {
 		mux := http.NewServeMux()
 		mux.Handle("/", handlers.NewRedirectHTTP("https"))
 
-		ln, err := getListener("tcp", ":"+cfg.httpPort)
+		ln, err := getLocalTCPListener(cfg.httpPort)
 		if err != nil {
 			// TODO: If Listen fails, try to bind to systemd provided socket
 			log.Panic(err)
@@ -122,9 +122,8 @@ func Start(options ...Option) error {
 			mux.Handle(p, h)
 		}
 
-		ln, err := getListener("tcp", ":"+cfg.httpsPort)
+		ln, err := getLocalTCPListener(cfg.httpsPort)
 		if err != nil {
-			// TODO: If Listen fails, try to bind to systemd provided socket
 			log.Panic(err)
 		} else {
 			defer ln.Close()

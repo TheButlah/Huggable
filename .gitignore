@@ -3,6 +3,8 @@
 *.pem
 /main
 /main.exe
+# Ignore go install at the home directory
+/go/  
 
 #### Project agnostic ignores below here ####
 # IDEs

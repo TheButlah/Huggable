@@ -6,8 +6,9 @@ package runner
 
 import "net"
 
-// getListener gets a `net.Listener` in a way that is independent of platform
-// or whether the program is running as a service. Mimics API of `net.Listen()`
-func getListener(network, address string) (net.Listener, error) {
-	return net.Listen(network, address)
+// getLocalTCPListener gets a `net.Listener` in a way that is independent of 
+// platform or whether the program is running as a service. `port` should be 
+// without ":"
+func getLocalTCPListener(port string) (net.Listener, error) {
+	return net.Listen("tcp", port)
 }

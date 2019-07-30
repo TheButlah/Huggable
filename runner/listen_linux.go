@@ -19,10 +19,12 @@ func getListener(network, address string) (net.Listener, error) {
 		case err != nil:
 			return nil, err
 		case len(lns) < 2:  // 2 listeners, 1 for each port
+			asdf, _ := activation.Listeners()
+			fmt.Printf("There were %d sockets, %d\n", len(lns), len(asdf))
 			return nil, errors.New(ErrMissingServiceSockets)
 		}
 	}
 	// TODO: Figure out what the heck the keys are for this
-	fmt.Println(listeners)
+	fmt.Println("listeners:", listeners)
 	return nil, nil
 }

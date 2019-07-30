@@ -33,6 +33,7 @@ _obj
 _test
 _testmain.go
 
+/.cache/
 /VERSION.cache
 /bin/
 /build.out

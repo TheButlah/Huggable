@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 
 	"github.com/thebutlah/huggable.us/runner"
 )
@@ -9,7 +10,10 @@ import (
 func main() {
 	log.Println("Starting server...")
 	// passing https gets mapped to the default port for https
-	err := runner.Start()
+	log.Println(os.Getwd())
+	err := runner.Start(
+		[]string{"www.huggable.us", "huggable.us"},
+	)
 	if err != nil {
 		log.Fatal(err)
 	}

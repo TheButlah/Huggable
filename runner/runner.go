@@ -5,10 +5,12 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"os"
 	"strconv"
+	"path/filepath"
+	"time"
 
 	"github.com/thebutlah/huggable.us/handlers"
+	"golang.org/x/crypto/acme/autocert"
 )
 
 var pathMap = map[string]http.Handler{
@@ -20,7 +22,7 @@ var pathMap = map[string]http.Handler{
 // config is used to aggregate configured options for `Start()`
 type config struct {
 	httpPort, httpsPort string
-	certPath, keyPath   string
+	certPath   					string
 }
 
 // Option is the type alias for configuring options for `Start()`
@@ -56,39 +58,36 @@ func HTTPSPort(port string) Option {
 	}
 }
 
-// CertPaths configures the location of the TLS/SSL Certificate for the HTTPS
-// Listener. Each argument should be a path to the corresponding certificate
-// or private key.
-func CertPaths(cert, key string) Option {
+// CertCache configures the location of the TLS/SSL Certificate Cache for the
+// HTTPS Listener. Path should be specified unix-style.
+func CertCache(path string) Option {
 	return func(c *config) error {
-		args := [2]string{cert, key}
-		for _, arg := range args {
-			if _, err := os.Stat(arg); err != nil {
-				// arg may or may not exist, but we error anyway
-				return fmt.Errorf(
-					"runner: could not determine if file `%s` exists", arg,
-				)
-			}
-		}
-		c.certPath = cert
-		c.keyPath = key
+		path = filepath.FromSlash(path)
+		// No need for error check - DirCache will create directory
+		c.certPath = path
 		return nil
 	}
 }
 
 // Start starts the server using the given options to determine the port.
-func Start(options ...Option) error {
+// `domains` should be a list of domains registered with the certificate 
+// authority that point to our IP address.
+func Start(domains []string, options ...Option) error {
 	////// Configure the options for `Start()` //////
 	cfg := new(config)
 	{
 		// Default values for the arguments
-		HTTPPort("http")(cfg)
-		HTTPSPort("https")(cfg)
-		CertPaths(
-			// Letsencrypt Cert install locations on unix
-			"/etc/letsencrypt/live/huggable.us/fullchain.pem",
-			"/etc/letsencrypt/live/huggable.us/privkey.pem",
-		)(cfg)
+		errs := [...]error{
+			HTTPPort("http")(cfg),
+			HTTPSPort("https")(cfg),
+			CertCache("certs/")(cfg),
+		}
+		for _, err := range errs {
+			if err != nil {
+				return err
+			}
+		}
+		
 
 		// Mutate config using provided options
 		for _, opt := range options {
@@ -96,7 +95,7 @@ func Start(options ...Option) error {
 				return err
 			}
 		}
-		log.Println("`runner.Start()` config:\n", cfg)
+		log.Printf("`runner.Start()` config: %+v\n", cfg)
 	}
 
 	////// Start http listener that redirects to https //////
@@ -125,11 +124,27 @@ func Start(options ...Option) error {
 		ln, err := getLocalTCPListener(cfg.httpsPort)
 		if err != nil {
 			log.Panic(err)
-		} else {
-			defer ln.Close()
-			log.Printf("Listening for HTTPS requests on \"%s\"", ln.Addr())
-			return http.ServeTLS(ln, mux, cfg.certPath, cfg.keyPath)
 		}
+		defer ln.Close()
+
+		// Build a manager for the certificates
+		certManager := &autocert.Manager{
+			Cache:      autocert.DirCache(cfg.certPath),
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: autocert.HostWhitelist(domains...),
+		}
+		server := http.Server{
+			Addr: ln.Addr().String(),
+			Handler: mux,
+			TLSConfig: certManager.TLSConfig(),
+			
+			// Don't hold resources forever
+			ReadTimeout:  5 * time.Second,
+      WriteTimeout: 5 * time.Second,
+      IdleTimeout:  120 * time.Second,
+		}
+		log.Printf("Listening for HTTPS requests on \"%s\"", ln.Addr())
+		// certFile and keyFile already specified in TLSConfig
+		return server.ServeTLS(ln, "", "")
 	}
-	return fmt.Errorf("runner: was never supposed to reach this")
 }

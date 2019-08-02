@@ -69,5 +69,5 @@ func getLocalTCPListenerSystemd(port string) (net.Listener, error) {
 	if result == nil {
 		return nil, errors.New(ErrNoSuchListener)
 	}
-	return result, nil
+	return result.(*net.TCPListener), nil
 }

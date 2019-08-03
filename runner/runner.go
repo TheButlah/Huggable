@@ -5,8 +5,8 @@ import (
 	"log"
 	"net"
 	"net/http"
-	"strconv"
 	"path/filepath"
+	"strconv"
 	"time"
 
 	"github.com/thebutlah/huggable.us/handlers"
@@ -22,7 +22,8 @@ var pathMap = map[string]http.Handler{
 // config is used to aggregate configured options for `Start()`
 type config struct {
 	httpPort, httpsPort string
-	certPath   					string
+	certPath            string
+	useSelfSigned       bool // TODO: Actually allow this to be True
 }
 
 // Option is the type alias for configuring options for `Start()`
@@ -69,9 +70,15 @@ func CertCache(path string) Option {
 	}
 }
 
+// UseSelfSignedCerts Forces the app to use self-signed certificates.
+var UseSelfSignedCerts = func(c *config) error {
+	c.useSelfSigned = true
+	return nil
+}
+
 // Start starts the server using the given options to determine the port.
-// `domains` should be a list of domains registered with the certificate 
-// authority that point to our IP address.
+// `domains` should be a list of domains registered with the certificate
+// authority that point to our IP address. Handles localhost as a special case.
 func Start(domains []string, options ...Option) error {
 	////// Configure the options for `Start()` //////
 	cfg := new(config)
@@ -82,12 +89,12 @@ func Start(domains []string, options ...Option) error {
 			HTTPSPort("https")(cfg),
 			CertCache("certs/")(cfg),
 		}
+
 		for _, err := range errs {
 			if err != nil {
 				return err
 			}
 		}
-		
 
 		// Mutate config using provided options
 		for _, opt := range options {
@@ -95,8 +102,16 @@ func Start(domains []string, options ...Option) error {
 				return err
 			}
 		}
-		log.Printf("`runner.Start()` config: %+v\n", cfg)
+
+		// TODO: Make this supported
+		if cfg.useSelfSigned {
+			return fmt.Errorf("error: using self-signed certs is not yet supported")
+		}
+
+		log.Printf("runner config: %+v\n", cfg)
 	}
+
+	log.Println("Starting the server...")
 
 	////// Start http listener that redirects to https //////
 	{
@@ -134,14 +149,14 @@ func Start(domains []string, options ...Option) error {
 			HostPolicy: autocert.HostWhitelist(domains...),
 		}
 		server := http.Server{
-			Addr: ln.Addr().String(),
-			Handler: mux,
+			Addr:      ln.Addr().String(),
+			Handler:   mux,
 			TLSConfig: certManager.TLSConfig(),
-			
+
 			// Don't hold resources forever
 			ReadTimeout:  5 * time.Second,
-      WriteTimeout: 5 * time.Second,
-      IdleTimeout:  120 * time.Second,
+			WriteTimeout: 5 * time.Second,
+			IdleTimeout:  120 * time.Second,
 		}
 		log.Printf("Listening for HTTPS requests on \"%s\"", ln.Addr())
 		// certFile and keyFile already specified in TLSConfig

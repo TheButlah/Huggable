@@ -1,16 +1,16 @@
 package runner
 
 import (
-	"net"
 	"log"
+	"net"
 
 	"github.com/coreos/go-systemd/activation"
 	sysdUtil "github.com/coreos/go-systemd/util"
 	"github.com/pkg/errors"
 )
 
-// getLocalTCPListener gets a `net.Listener` in a way that is independent of 
-// platform or whether the program is running as a service. `port` should be 
+// getLocalTCPListener gets a `net.Listener` in a way that is independent of
+// platform or whether the program is running as a service. `port` should be
 // without ":"
 func getLocalTCPListener(port string) (net.Listener, error) {
 	isSystemd, err := sysdUtil.RunningFromSystemService()
@@ -33,22 +33,21 @@ func getLocalTCPListenerSystemd(port string) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	
+
 	////// Cache listeners for later //////
 	if listeners == nil {
 		// This call only works once
-		lns, err := activation.Listeners();
+		lns, err := activation.Listeners()
 		switch {
 		case err != nil:
 			return nil, err
-		case len(lns) < 2:  // 2 listeners, 1 for each port
+		case len(lns) < 2: // 2 listeners, 1 for each port
 			return nil, errors.New(ErrMissingServiceSockets)
 		}
 		listeners = lns
 		log.Printf("Cached %d listeners...", len(listeners))
 	}
 
-		
 	////// Determine which, if any, of the listeners match what we want //////
 	var result net.Listener
 	for _, ln := range listeners {
@@ -69,5 +68,5 @@ func getLocalTCPListenerSystemd(port string) (net.Listener, error) {
 	if result == nil {
 		return nil, errors.New(ErrNoSuchListener)
 	}
-	return result.(*net.TCPListener), nil
+	return result, nil
 }

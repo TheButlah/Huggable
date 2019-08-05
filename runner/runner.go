@@ -1,16 +1,15 @@
 package runner
 
 import (
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"time"
 
 	"github.com/thebutlah/huggable.us/handlers"
-	"golang.org/x/crypto/acme/autocert"
 )
 
 var pathMap = map[string]http.Handler{
@@ -19,11 +18,30 @@ var pathMap = map[string]http.Handler{
 
 //// Start and option config ////
 
+// TLSMode enum
+type tlsMode int
+
+const (
+	// InvalidTLSMode ensures that not configuring the mode fails
+	InvalidTLSMode tlsMode = iota
+	// SelfSignedTLSMode uses self-signed certs generated on the fly
+	SelfSignedTLSMode
+	// AutomaticTLSMode uses the autocert package to get TLS certs
+	AutomaticTLSMode
+	// ProvidedTLSMode uses certs provided by the user in files
+	ProvidedTLSMode
+)
+
+func (m tlsMode) String() string {
+	return [...]string{"Invalid", "SelfSigned", "Automatic", "Provided"}[m]
+}
+
 // config is used to aggregate configured options for `Start()`
 type config struct {
 	httpPort, httpsPort string
-	certPath            string
-	useSelfSigned       bool // TODO: Actually allow this to be True
+	certsPath           string
+	hosts               []string
+	mode                tlsMode
 }
 
 // Option is the type alias for configuring options for `Start()`
@@ -59,27 +77,36 @@ func HTTPSPort(port string) Option {
 	}
 }
 
-// CertCache configures the location of the TLS/SSL Certificate Cache for the
-// HTTPS Listener. Path should be specified unix-style.
-func CertCache(path string) Option {
+// AutomaticTLS configures the HTTPS listener to automatically get TLS Certs.
+// `hosts` is a list of hosts that belong to this server.
+func AutomaticTLS(hosts []string) Option {
 	return func(c *config) error {
-		path = filepath.FromSlash(path)
-		// No need for error check - DirCache will create directory
-		c.certPath = path
+		c.mode = AutomaticTLSMode
+		c.certsPath = "certs"
+		// TODO: Do we need to include localhost here or check for length >= 1?
+		c.hosts = hosts
 		return nil
 	}
 }
 
-// UseSelfSignedCerts Forces the app to use self-signed certificates.
-var UseSelfSignedCerts = func(c *config) error {
-	c.useSelfSigned = true
-	return nil
+// SelfSignedTLS configures the HTTPS listener to use self-signed TLS Certs
+// generated on the fly.
+// `hosts` is a list of hosts that belong to this server.
+func SelfSignedTLS(hosts []string) Option {
+	return func(c *config) error {
+		c.mode = SelfSignedTLSMode
+		// TODO: Do we need to include localhost here or check for length >= 1?
+		c.hosts = hosts
+		return nil
+	}
 }
 
+//TODO: Implement ProvidedTLS
+
 // Start starts the server using the given options to determine the port.
-// `domains` should be a list of domains registered with the certificate
-// authority that point to our IP address. Handles localhost as a special case.
-func Start(domains []string, options ...Option) error {
+// `hosts` should be a list of hosts registered with the certificate authority
+// that point to our IP address. Handles localhost as a special case.
+func Start(hosts []string, options ...Option) error {
 	////// Configure the options for `Start()` //////
 	cfg := new(config)
 	{
@@ -87,7 +114,7 @@ func Start(domains []string, options ...Option) error {
 		errs := [...]error{
 			HTTPPort("http")(cfg),
 			HTTPSPort("https")(cfg),
-			CertCache("certs/")(cfg),
+			AutomaticTLS(hosts)(cfg),
 		}
 
 		for _, err := range errs {
@@ -103,16 +130,10 @@ func Start(domains []string, options ...Option) error {
 			}
 		}
 
-		// TODO: Make this supported
-		if cfg.useSelfSigned {
-			return fmt.Errorf("error: using self-signed certs is not yet supported")
-		}
-
 		log.Printf("runner config: %+v\n", cfg)
 	}
 
 	log.Println("Starting the server...")
-
 	////// Start http listener that redirects to https //////
 	{
 		mux := http.NewServeMux()
@@ -142,16 +163,23 @@ func Start(domains []string, options ...Option) error {
 		}
 		defer ln.Close()
 
-		// Build a manager for the certificates
-		certManager := &autocert.Manager{
-			Cache:      autocert.DirCache(cfg.certPath),
-			Prompt:     autocert.AcceptTOS,
-			HostPolicy: autocert.HostWhitelist(domains...),
+		var tlsConfig *tls.Config
+		switch cfg.mode {
+		case AutomaticTLSMode:
+			tlsConfig, err = automaticTLSConfig(cfg.certsPath, cfg.hosts)
+		case SelfSignedTLSMode:
+			tlsConfig, err = selfSignedTLSConfig(cfg.hosts)
+		default:
+			err = fmt.Errorf("TLS mode was invalid")
 		}
+		if err != nil {
+			return err
+		}
+
 		server := http.Server{
 			Addr:      ln.Addr().String(),
 			Handler:   mux,
-			TLSConfig: certManager.TLSConfig(),
+			TLSConfig: tlsConfig,
 
 			// Don't hold resources forever
 			ReadTimeout:  5 * time.Second,

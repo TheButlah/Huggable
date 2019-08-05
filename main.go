@@ -41,7 +41,7 @@ func main() {
 	app.Commands = []cli.Command{
 		startCommand,
 	}
-	app.Action = startCommand.Action
+	app.Action = startCommand.Run
 
 	err := app.Run(os.Args)
 	if err != nil {
@@ -56,6 +56,8 @@ func startAction(c *cli.Context) error {
 	}
 	options := make([]runner.Option, 0)
 	cmode := c.String("cmode")
+	// TODO: Why is cmode empty string instead of auto when not specified?
+	fmt.Printf("cmode: %s\n", cmode)
 	switch cmode {
 	case "auto":
 		options = append(options, runner.AutomaticTLS(hosts))

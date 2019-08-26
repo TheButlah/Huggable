@@ -9,6 +9,7 @@ import (
 	"crypto/x509/pkix"
 	"fmt"
 	"math/big"
+	"net"
 	"time"
 
 	"golang.org/x/crypto/acme/autocert"
@@ -63,13 +64,26 @@ func genSelfSignedCert(hosts []string) (*tls.Certificate, error) {
 		Subject: pkix.Name{
 			Organization: []string{"Bogus Certificates Inc"},
 		},
+		Version: 3,
+
+		DNSNames:    []string{"localhost"},
+		IPAddresses: []net.IP{net.IPv6loopback, net.IPv4(127, 0, 0, 1)},
+
 		NotBefore: notBefore,
 		NotAfter:  notAfter,
 
 		KeyUsage:              keyUsage,
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
-		BasicConstraintsValid: true,
 		IsCA:                  true,
+		BasicConstraintsValid: true,
+	}
+
+	for _, h := range hosts {
+		if ip := net.ParseIP(h); ip != nil {
+			template.IPAddresses = append(template.IPAddresses, ip)
+		} else {
+			template.DNSNames = append(template.DNSNames, h)
+		}
 	}
 
 	// DER encoded certificate in a byte array

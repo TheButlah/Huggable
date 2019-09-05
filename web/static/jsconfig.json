@@ -1,0 +1,10 @@
+{
+  "extends": "./scripts/generic-jsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2015", "webworker"]
+  },
+  "references": [
+    {"path": "./scripts/jsconfig.json"}
+  ],
+  "files": ["./sw.js"]
+}

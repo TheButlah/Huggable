@@ -1,12 +1,15 @@
 console.log('Executing sw.js');
 
+// Use `me` instead of `self` as type of `self` is incorrect.
+const me = (/** @type {ServiceWorkerGlobalScope} */ ((/** @type {unknown} */ (self))))
+
 const cacheName = 'huggable';
 
 // Essential components of app shell
 const essentials = [
     // App Shell
     '/index.html',
-    '/app.js',
+    '/scripts/app.js',
     '/manifest.json',
     '/sw.js',
 
@@ -17,12 +20,12 @@ const essentials = [
     '/icons/apple-touch-icon.png',
 ];
 
-self.addEventListener("install", /** @param {FetchEvent} event */ event => {
+me.addEventListener("install", /** @param {FetchEvent} event */ event => {
     console.log("Installing service worker...")
     // Force all essential files to be in cache, in the event that we never get
     // to fetch them, such as when installing app but then losing internet.
     // Also ensure that we don't complete the event until the promise settles.
-    event.waitUntil(async () => {
+    event.waitUntil((async () => {
         console.log("Caching app shell...");
         try {
             const cache = await caches.open(cacheName);
@@ -31,14 +34,15 @@ self.addEventListener("install", /** @param {FetchEvent} event */ event => {
         } catch (error) {
             console.error("Error while caching app shell: " + error);
         }
-    });
+        me.skipWaiting()
+    })());
 });
 
-self.addEventListener("activate", event => {
+me.addEventListener("activate", event => {
     console.info("Activated service worker!");
 });
 
-self.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
+me.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
     // Only mess with GET requests
     if (event.request.method != 'GET') return;
 
@@ -58,12 +62,9 @@ self.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
 
         try {
             const cachedResponse = await cache.match(event.request);
-            console.log("cachedResponse: " + cachedResponse);
             if (!cachedResponse) {
                 console.log("Cache doesn't contain an entry for " + event.request);
             }
-            console.log("fetchPromise: " + fetchPromise);
-
             // Return whats in cache, otherwise use response from fetch
             return cachedResponse || fetchPromise;
 

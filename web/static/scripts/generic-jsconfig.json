@@ -2,8 +2,7 @@
   "compilerOptions": {
     "target": "es2015",
     "module": "es2015",
-    "rootDir": "../",
-    "outDir": "../",
+    "composite": true,
     "checkJs": true
   }
 }

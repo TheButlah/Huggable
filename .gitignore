@@ -3,13 +3,15 @@
 *.pem
 /main
 /main.exe
+
 # Ignore go install at the home directory
-/go/  
+/go/
 
 #### Project agnostic ignores below here ####
 # IDEs
 .idea
 .vscode/
+__debug_bin
 
 # MacOS Files
 .DS_Store

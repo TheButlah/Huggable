@@ -16,14 +16,13 @@ async function registerSW() {
 if ('serviceWorker' in navigator) {
     const swRegistration = registerSW();  // This is a promise
 
-    let deferredPrompt;
-    window.addEventListener('beforeinstallprompt', event => {
+    window.addEventListener('beforeinstallprompt', (event) => {
         console.log("install prompt fired");
 
         // Prevent Chrome 67 and earlier from automatically showing the prompt
         event.preventDefault();
 
-        deferredPrompt = event;
+        const deferredPrompt = event;
         document.addEventListener('click', () => {
             deferredPrompt.prompt();
         });
@@ -34,7 +33,6 @@ if ('serviceWorker' in navigator) {
             } else {
                 console.info('User declined the installation');
             }
-            deferredPrompt = null;
         });
     });
 

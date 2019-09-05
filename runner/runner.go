@@ -12,8 +12,12 @@ import (
 	"github.com/thebutlah/huggable.us/handlers"
 )
 
+const (
+	staticDir = "web/static"
+)
+
 var pathMap = map[string]http.Handler{
-	"/": handlers.NewStaticContent("web"),
+	"/": handlers.NewStaticContent(staticDir),
 }
 
 //// Start and option config ////

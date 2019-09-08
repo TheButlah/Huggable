@@ -34,6 +34,7 @@ me.addEventListener("install", /** @param {FetchEvent} event */ event => {
         } catch (error) {
             console.error("Error while caching app shell: " + error);
         }
+        // Don't wait for previous service worker to shutdown
         me.skipWaiting()
     })());
 });

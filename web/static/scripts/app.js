@@ -1,4 +1,4 @@
-console.log('Executing /main/app.js');
+console.log('Executing /scripts/app.js');
 
 /** Registers a ServiceWorker and returns the registration promise. */
 async function registerSW() {
@@ -16,53 +16,60 @@ async function registerSW() {
 if ('serviceWorker' in navigator) {
     const swRegistration = registerSW();  // This is a promise
 
-    window.addEventListener('beforeinstallprompt', (event) => {
-        console.log("install prompt fired");
-
-        // Prevent Chrome 67 and earlier from automatically showing the prompt
-        event.preventDefault();
-
-        const deferredPrompt = event;
-        document.addEventListener('click', () => {
-            deferredPrompt.prompt();
-        });
-
-        deferredPrompt.userChoice.then(choice => {
-            if (choice.outcome === 'accepted') {
-                console.info('User accepted the installation');
-            } else {
-                console.info('User declined the installation');
-            }
-        });
-    });
-
-    /*
+    // Only supported on Chrome
     try {
-        askNotificationPermission()
+        window.addEventListener('beforeinstallprompt', event => {
+            console.log("install prompt fired");
+
+            // Prevent Chrome 67 and earlier from automatically showing the prompt
+            event.preventDefault();
+
+            const deferredPrompt = event;
+            document.addEventListener('click', () => {
+                deferredPrompt.prompt();
+            });
+
+            deferredPrompt.userChoice.then(choice => {
+                if (choice.outcome === 'accepted') {
+                    console.info('User accepted the installation');
+                } else {
+                    console.info('User declined the installation');
+                }
+            });
+        });
     } catch (error) {
-        console.error("Error when asking for notification: " + error)
-    }*/
+        console.error("Error while adding listener for 'beforeinstallevent' error: " + error)
+    }
 }
 
-/** Asks for permission to show notifications. */
+/**
+ * Asks for permission to show notifications.
+ * @returns true if permission granted, otherwise false.
+*/
 function askNotificationPermission() {
     // The latest api uses a promise for `requestPermission()`, but the old API used a callback.
-    // Solution: use deprecated API, and check to see if the function returns undefined. If so,
+    // Solution: use deprecated API, and check to see if the function returns undefined, or a Promise
+    if (Notification.permission === 'granted') {
+        console.warn('Asking to grant notification perms, but they are already granted. Are you sure you want to do this?')
+    }
     return new Promise(function (resolve, reject) {
         const permissionResult = Notification.requestPermission(function (result) {
-            resolve(result);
+            resolve(result)
         });
-        console.log(permissionResult);
         if (permissionResult) {
-            console.log('notification API using promises');
-            permissionResult.then(resolve, reject);
+            console.log('notification API using promises')
+            permissionResult.then(resolve, reject)
         } else {
-            console.log('notification API using deprecated callbacks');
+            console.log('notification API using deprecated callbacks')
         }
     })
     .then(function (permissionResult) {
-        if (permissionResult !== 'granted') {
-            throw new Error('We weren\'t granted permission.');
+        if (permissionResult === 'granted') {
+            console.log('Notification permission granted')
+            return true
+        } else {
+            console.log('Notification permission denied')
+            return false
         }
     });
 }

@@ -25,6 +25,9 @@ if ('serviceWorker' in navigator) {
             event.preventDefault();
 
             const deferredPrompt = event;
+            /*
+            Disable auto prompt for installing on google chrome
+            until we can figure out how to standardize it across all browsers
             document.addEventListener('click', () => {
                 deferredPrompt.prompt();
             });
@@ -36,6 +39,7 @@ if ('serviceWorker' in navigator) {
                     console.info('User declined the installation');
                 }
             });
+            */
         });
     } catch (error) {
         console.error("Error while adding listener for 'beforeinstallevent' error: " + error)

@@ -1,7 +1,9 @@
+export {showNotification, askNotificationPermission}
+
 console.log('Executing /scripts/notify.js');
 
 /**
- * Asks for permission to show notifications.
+ * Asks for permission to show notifications, and subscribes the PushManager if granted.
  * @returns true if permission granted, otherwise false.
 */
 function askNotificationPermission() {
@@ -10,7 +12,7 @@ function askNotificationPermission() {
   if (Notification.permission === 'granted') {
       console.warn('Asking to grant notification perms, but they are already granted. Are you sure you want to do this?')
   }
-  return new Promise(function (resolve, reject) {
+  const result = new Promise(function (resolve, reject) {
       const permissionResult = Notification.requestPermission(function (result) {
           resolve(result)
       });
@@ -30,13 +32,27 @@ function askNotificationPermission() {
           return false
       }
   });
+
+  result.then(isGranted => {
+    if (isGranted) {
+      // TODO: Subscribe user to push notifications
+    }
+  })
+
+  return result
 }
 
+/**
+ * Helper function to show a notification.
+ * @returns the notification
+ */
 function showNotification(title, body) {
   const options = {
     image: "/icons/android-chrome-192x192.png",
     icon: "/icons/android-chrome-192x192.png",
     body: body,
   }
-  const notification = new Notification(title, options)
+  // Constructing the notification immediately displays it.
+  // Returning is not necessary, but we do it so that the object is accessible.
+  return new Notification(title, options)
 }

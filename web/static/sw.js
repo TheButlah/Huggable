@@ -1,3 +1,5 @@
+"use strict";
+
 console.log('Executing sw.js');
 
 // Use `me` instead of `self` as type of `self` is incorrect.
@@ -64,7 +66,7 @@ me.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
         try {
             const cachedResponse = await cache.match(event.request);
             if (!cachedResponse) {
-                console.log("Cache doesn't contain an entry for " + event.request);
+                console.log("Cache doesn't contain an entry for " + event.request.url);
             }
             // Return whats in cache, otherwise use response from fetch
             return cachedResponse || fetchPromise;

@@ -1,3 +1,5 @@
+export {}
+
 console.log('Executing /scripts/app.js');
 
 /** Registers a ServiceWorker and returns the registration promise. */

@@ -1,3 +1,6 @@
+export {}
+import * as Notify from './scripts/notify.js'
+
 console.log('Executing /index.js');
 
 // Enable UI For granting notifications if they aren't already granted
@@ -12,7 +15,7 @@ function setNotificationUIActive(setActive) {
   if (setActive) {
     div.style.display = "block"
     button.onclick = () => {
-      askNotificationPermission()
+      Notify.askNotificationPermission()
       .then(granted => {
         // Regardless of if user accepts or denies, we can't prompt them again till the browser lets us.
         // So just hide the button for now.
@@ -21,7 +24,7 @@ function setNotificationUIActive(setActive) {
         // If the user grants the perm for the first time, show them an example notification
         if (granted) {
           setTimeout(() => {
-            showNotification("Example Notification", "This is an example of what a notification will look like.")
+            Notify.showNotification("Example Notification", "This is an example of what a notification will look like.")
           }, 1.5 * 1000)
         }
       })

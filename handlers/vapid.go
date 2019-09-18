@@ -47,6 +47,7 @@ func (e VAPIDEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	_, err = w.Write(encoded)
 	if err != nil {
 		log.Printf("Error while writing response in (VAPIDEndpoint).ServeHTTP(): %s\n", err)

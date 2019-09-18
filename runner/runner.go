@@ -17,7 +17,8 @@ const (
 )
 
 var pathMap = map[string]http.Handler{
-	"/": handlers.NewStaticContent(staticDir),
+	"/":               handlers.NewStaticContent(staticDir),
+	"/api/push/vapid": handlers.NewVAPIDEndpoint(),
 }
 
 //// Start and option config ////

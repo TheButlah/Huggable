@@ -49,6 +49,11 @@ me.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
   // Only mess with GET requests
   if (event.request.method != 'GET') return;
 
+  // Do not cache API calls
+  if (new URL(event.request.url).pathname.startsWith("/api")) {
+    return
+  }
+
   // Prevent the default, and handle the request ourselves.
   event.respondWith((async () => {
     const cache = await caches.open(cacheName);

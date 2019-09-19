@@ -41,7 +41,7 @@ func (e *VAPIDEndpoint) RegenerateKeys() (err error) {
 func (e VAPIDEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// This endpoint only accepts GET requests
 	if r.Method != "" && r.Method != "GET" {
-		w.WriteHeader(http.StatusBadRequest)
+		HTTPError(w, http.StatusBadRequest)
 		return
 	}
 
@@ -49,7 +49,7 @@ func (e VAPIDEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	encoded, err := json.Marshal(e)
 	if err != nil {
 		log.Printf("Error while marshalling JSON in (VAPIDEndpoint).ServeHTTP(): %s\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		HTTPError(w, http.StatusInternalServerError)
 		return
 	}
 
@@ -61,7 +61,7 @@ func (e VAPIDEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	_, err = w.Write(encoded)
 	if err != nil {
 		log.Printf("Error while writing response in (VAPIDEndpoint).ServeHTTP(): %s\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
+		HTTPError(w, http.StatusInternalServerError)
 		return
 	}
 }

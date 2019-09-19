@@ -8,11 +8,14 @@ import (
 	push "github.com/SherClockHolmes/webpush-go"
 )
 
-// VAPIDEndpoint is a `http.Handler` that listens for get requests and returns the VAPID public key
+// VAPIDEndpoint is a `http.Handler` REST endpoint that listens for get requests and returns the VAPID public key
 type VAPIDEndpoint struct {
 	PublicKey  string
 	privateKey string
 }
+
+//Compile-time check that `VAPIDEndpoint` implements `http.Handler`
+var _ http.Handler = (*VAPIDEndpoint)(nil)
 
 // NewVAPIDEndpoint constructs a new VAPIDEndpoint with a random keypair
 func NewVAPIDEndpoint() (e VAPIDEndpoint) {
@@ -41,13 +44,20 @@ func (e VAPIDEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
+
+	// Only uses exported fields of the struct
 	encoded, err := json.Marshal(e)
 	if err != nil {
 		log.Printf("Error while marshalling JSON in (VAPIDEndpoint).ServeHTTP(): %s\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+
+	// Setup headers
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "No-Cache")
+
+	// Write response along with headers
 	_, err = w.Write(encoded)
 	if err != nil {
 		log.Printf("Error while writing response in (VAPIDEndpoint).ServeHTTP(): %s\n", err)
@@ -55,6 +65,3 @@ func (e VAPIDEndpoint) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-
-//Compile-time check that `VAPIDEndpoint` implements `http.Handler`
-var _ http.Handler = (*VAPIDEndpoint)(nil)

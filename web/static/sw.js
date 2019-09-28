@@ -42,7 +42,8 @@ me.addEventListener("install", /** @param {FetchEvent} event */ event => {
 });
 
 me.addEventListener("activate", event => {
-  console.info("Activated service worker!");
+  console.info("Activating service worker...");
+  // Old sw is no longer running
 });
 
 me.addEventListener('fetch', /** @param {FetchEvent} event */ event => {
